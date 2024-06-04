@@ -4,22 +4,25 @@ raspberrypi-ua-netinst build instructions
 To create an image yourself, you need to have various packages installed on the host machine.
 On a Debian system those are the following, excluding packages with priority essential and required:
 
-- git
-- wget
-- bzip2
-- zip
-- xz-utils
-- gnupg
-- kpartx
-- dosfstools
-- binutils
 - bc
+- binutils
+- bzip2
+- ca-certificates
 - cpio
+- dosfstools
+- fdisk
+- git
+- gnupg
+- kmod
+- kpartx
+- wget
+- xz-utils
+- zip
 
 On Debian based systems you can install them as root or with sudo as follows:
 
 ```
-aptitude install git curl bzip2 zip xz-utils gnupg kpartx dosfstools binutils bc
+aptitude install bc binutils bzip2 ca-certificates cpio dosfstools fdisk git gnupg kmod kpartx wget xz-utils zip
 ```
 
 The following scripts are used to build the raspberrypi-ua-netinst installer, listed in the same order they would be used:
