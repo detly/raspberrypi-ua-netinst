@@ -37,54 +37,42 @@ else
 fi
 export imagename
 
+genimage_config=${build_dir}/genimage.cfg
+
+cat >"${genimage_config}" <<EOF
+# This configuration file is a template, populated by buildroot.sh.
+
+# The whole-disk image, containing the partition table.
+image ${imagename}.img {
+    hdimage {
+        partition-table-type = mbr
+    }
+    partition installer {
+    	partition-type = "0xb"
+    	image = "installer.img"
+    }
+}
+
+# The first partition, containing the installer.
+image installer.img {
+	mountpoint = "/"
+	size = "128M"
+	vfat {
+		label = "RPI NETINST"
+	}
+}
+EOF
+
 image=${build_dir}/${imagename}.img
 
 # Prepare
 rm -f "${image}"
-rm -rf "${build_dir:-build_dir}/mnt/"
 
 # Create image
-dd if=/dev/zero of="$image" bs=1M count=128
-
-${SUDO} fdisk "${image}" <<EOF
-n
-p
-1
-
-
-t
-b
-w
-EOF
-
-if ! losetup --version &> /dev/null; then
-	losetup_lt_2_22=true
-elif [ "$(echo "$(losetup --version | rev|cut -f1 -d' '|rev|cut -d'.' -f-2)"'<'2.22 | bc -l)" -ne 0 ]; then
-	losetup_lt_2_22=true
-else
-	losetup_lt_2_22=false
-fi
-
-if [ "$losetup_lt_2_22" = "true" ]; then
-	${SUDO} kpartx -as "${image}"
-	${SUDO} mkfs.vfat /dev/mapper/loop0p1
-	mkdir ${build_dir}/mnt
-	${SUDO} mount /dev/mapper/loop0p1 ${build_dir}/mnt
-	${SUDO} cp -r ${build_dir}/bootfs/* ${build_dir}/mnt
-	${SUDO} umount ${build_dir}/mnt
-	${SUDO} kpartx -d "${image}" || true
-	rmdir ${build_dir}/mnt
-else
-	${SUDO} losetup --find --partscan "${image}"
-	LOOP_DEV="$(losetup --associated "${image}" | cut -f1 -d':')"
-	${SUDO} mkfs.vfat "${LOOP_DEV}p1"
-	mkdir ${build_dir}/mnt
-	${SUDO} mount "${LOOP_DEV}p1" ${build_dir}/mnt
-	${SUDO} cp -r ${build_dir}/bootfs/* ${build_dir}/mnt
-	${SUDO} umount ${build_dir}/mnt
-	${SUDO} losetup --detach "${LOOP_DEV}"
-	rmdir ${build_dir}/mnt
-fi
+genimage \
+	--config "${genimage_config}" \
+	--inputpath "${build_dir}" --outputpath "${build_dir}" \
+	--tmppath "${build_dir}/tmp" --rootpath "${build_dir}/bootfs"
 
 # Create archives
 
